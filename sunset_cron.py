@@ -58,8 +58,11 @@ try:
     has_gps_str = config.get('station', 'has_gps')
     has_gps = strtobool(has_gps_str)
     station_name = config.get('station', 'name')
+    apikey = config.get('station', 'apikey')
     station = config["sqm"]
     instrument_id = config.get('sqm', 'instrument_id')
+    device_serial = config.get('sqm', 'serial')
+    device_type = config.get('sqm', 'type')
     sqmdatafile = config.get('sqm', 'sqmdatafile')
 except KeyError as e:
     logger.warn("Error reading the configuration section {}".format(e))
@@ -180,7 +183,7 @@ config.set('sqm', 'sqmdatafile', sqmdatafile)
 logger.debug('datapath: ' + datapath)
 logger.debug('sqmdatafile: ' + sqmdatafile)
 
-import zlib
+import requests, zlib
 
 checksum = hex(zlib.crc32( device_serial + device_type + instrument_id + apikey))[2:]
 logger.debug('checksum: ' + checksum)
