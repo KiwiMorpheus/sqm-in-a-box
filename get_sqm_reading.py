@@ -17,17 +17,36 @@ if not os.path.isdir(datapath):
 	os.makedirs(datapath)
 	
 sqm_logfile = basepath +'logs/sqm.log'
-		
-import logging
-# set up logging to file - see previous section for more details
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%Y-%m-%d %H:%M',
-                    filename=sqm_logfile)
 
-# define a Handler which writes INFO messages or higher to the sys.stderr
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
+import configparser, sys
+from distutils.util import strtobool
+
+config = configparser.ConfigParser()
+config.read(configfile)
+
+debug = config["debug"]
+debugmode = config.get('debug', 'debugmode')
+
+import logging
+
+# set up logging to file - see previous section for more details
+if debugmode == 'debug':
+	logging.basicConfig(level=logging.DEBUG,
+					format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+					datefmt='%Y-%m-%d %H:%M',
+					filename=sqm_logfile)
+	# define a Handler which writes INFO messages or higher to the sys.stderr
+	console = logging.StreamHandler()
+	console.setLevel(logging.DEBUG)
+else:
+	logging.basicConfig(level=logging.INFO,
+					format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+					datefmt='%Y-%m-%d %H:%M',
+					filename=sqm_logfile)
+	# define a Handler which writes INFO messages or higher to the sys.stderr
+	console = logging.StreamHandler()
+	console.setLevel(logging.INFO)
+
 # set a format which is simpler for console use
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 # tell the handler to use this format
@@ -45,44 +64,38 @@ today = datetime.datetime.today()
 
 logger.debug('today :' + str(today))
 
-import configparser, sys
-from distutils.util import strtobool
-
-config = configparser.ConfigParser()
-config.read(configfile)
-
 try:
-    gps = config["sqm"]
-    sqm_type = config.get('sqm', 'type')
-    sqm_serial = config.get('sqm', 'serial')
-    sqm_connection = config.get('sqm', 'connection')
-    sqmdatafile = datapath + config.get('sqm', 'sqmdatafile')
-    if sqm_connection == 'eth':
-        sqm_address = config.get('sqm', 'sqm_address')
-        tcp_port = config.getint('sqm', 'tcp_port')
-    elif sqm_connection == 'usb':
-        usb_port = config.get('sqm', 'usb_port')
+	gps = config["sqm"]
+	sqm_type = config.get('sqm', 'type')
+	sqm_serial = config.get('sqm', 'serial')
+	sqm_connection = config.get('sqm', 'connection')
+	sqmdatafile = datapath + config.get('sqm', 'sqmdatafile')
+	if sqm_connection == 'eth':
+		sqm_address = config.get('sqm', 'sqm_address')
+		tcp_port = config.getint('sqm', 'tcp_port')
+	elif sqm_connection == 'usb':
+		usb_port = config.get('sqm', 'usb_port')
 
-    gps = config["gps"]
-    tzn = config.get('gps', 'tzn')
-    latitude = config.get('gps', 'lat')
-    longitude = config.get('gps', 'lon')
-    elevation = config.get('gps', 'elv')
-    last_gps_read_string = config.get('gps', 'last_gps_read')
+	gps = config["gps"]
+	tzn = config.get('gps', 'tzn')
+	latitude = config.get('gps', 'lat')
+	longitude = config.get('gps', 'lon')
+	elevation = config.get('gps', 'elv')
+	last_gps_read_string = config.get('gps', 'last_gps_read')
 
-    station = config["station"]
-    station_name = config.get('station', 'name')
-    station_id = config.get('station', 'station_id')
-    is_mobile_string = config.get('station', 'is_mobile')
-    is_mobile = strtobool(is_mobile_string)
-    apikey = config.get('station', 'apikey')
+	station = config["station"]
+	station_name = config.get('station', 'name')
+	station_id = config.get('station', 'station_id')
+	is_mobile_string = config.get('station', 'is_mobile')
+	is_mobile = strtobool(is_mobile_string)
+	apikey = config.get('station', 'apikey')
 
-    sqm = config["sqm"]
-    instrument_id = config.get('sqm', 'instrument_id')
+	sqm = config["sqm"]
+	instrument_id = config.get('sqm', 'instrument_id')
 
-    suntimes = config["suntimes"]
-    next_sunrise_string = config.get('suntimes', 'next_sunrise')
-    next_sunset_string = config.get('suntimes', 'next_sunset')
+	suntimes = config["suntimes"]
+	next_sunrise_string = config.get('suntimes', 'next_sunrise')
+	next_sunset_string = config.get('suntimes', 'next_sunset')
 	
 except KeyError as e:
 	logger.warn("Error reading the configuration section {}".format(e))
@@ -126,7 +139,7 @@ header = '# Light Pollution Monitoring Data Format 1.0\
 # blank line\
 # UTC Date & Time, Local Date & Time, Temperature, Counts, Frequency, MSAS, MoonPhaseDeg, MoonElevDeg, MoonIllum\
 # YYYY-MM-DDTHH:mm:ss.fff;YYYY-MM-DDTHH:mm:ss.fff;Celsius;number;Hz;mag/arcsec^2;Degrees;Degrees;Percent'
-    
+	
 import datetime
 from datetime import datetime, timedelta
 import pytz, tzlocal, zlib
@@ -146,50 +159,50 @@ tz = pytz.timezone(tzn)
 now = datetime.now(tz)
 
 if sqm_connection =='eth':
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #s.connect(('unihedron.dyndns.org',10001))
-    s.connect((sqm_address,tcp_port))
-    
-    st = 'rx'
-    byt=st.encode()
-    s.send(byt)
+	import socket
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	#s.connect(('unihedron.dyndns.org',10001))
+	s.connect((sqm_address,tcp_port))
+	
+	st = 'rx'
+	byt=st.encode()
+	s.send(byt)
 
-    msg = ''
-    while len(msg) < 56:
-        chunk = s.recv(56-len(msg))
-        if chunk == '':
-            print('raise RuntimeError, "socket connection broken"')
-        msg = msg + str(chunk)
-    s.close
+	msg = ''
+	while len(msg) < 56:
+		chunk = s.recv(56-len(msg))
+		if chunk == '':
+			print('raise RuntimeError, "socket connection broken"')
+		msg = msg + str(chunk)
+	s.close
 elif sqm_connection =='usb':
-    import serial
-    
-    ser = serial.Serial(
-        port=usb_port,\
-        baudrate=115200,\
-        parity=serial.PARITY_NONE,\
-        stopbits=serial.STOPBITS_ONE,\
-        bytesize=serial.EIGHTBITS,\
-            timeout=1)
-    
-    logger.debug("connected to: " + ser.portstr)
-    
-    ser.write("rx\n")
-    ser.flush()
-    now = datetime.now(tz)
-    logger.debug(ser.readline())
-    
-    msg = ser
-    
-    ser.close()
+	import serial
+	
+	ser = serial.Serial(
+		port=usb_port,\
+		baudrate=115200,\
+		parity=serial.PARITY_NONE,\
+		stopbits=serial.STOPBITS_ONE,\
+		bytesize=serial.EIGHTBITS,\
+			timeout=1)
+	
+	logger.debug("connected to: " + ser.portstr)
+	
+	ser.write("rx\n")
+	ser.flush()
+	now = datetime.now(tz)
+	logger.debug(ser.readline())
+	
+	msg = ser
+	
+	ser.close()
 
 sqm_rx = msg
 utc_now = now.astimezone(pytz.utc)
 
 logger.debug('now: ' + str(now))
 logger.debug(type(now))
-    
+	
 mpsas = float(sqm_rx[2:8])
 frequency = int(sqm_rx[10:20])
 counts = int(sqm_rx[23:33])
@@ -216,26 +229,26 @@ logger.debug(type(checksum))
 
 
 params = (
-    ('action', 'writesqm'),
-    ('station_id', station_id),
-    ('instrument_id', instrument_id),
-    ('time_utc', utc_now.strftime('%Y-%m-%d %H:%M:%S.%f')),
-    ('time_local', now.strftime('%Y-%m-%d %H:%M:%S.%f')),
-    ('temperature', temperature),
-    ('counts', counts),
-    ('frequency', frequency),
-    ('mpsas', mpsas),
-    ('moon_phase_deg', moon_phase_deg),
-    ('moon_elev_deg', moon_elev_deg ),
-    ('moon_illum', moon_illum ),
-    ('latitude', latitude),
-    ('longitude', longitude),
-    ('elevation', elevation),
-    ('apikey', apikey),
-    ('checksum', checksum),
+	('action', 'writesqm'),
+	('station_id', station_id),
+	('instrument_id', instrument_id),
+	('time_utc', utc_now.strftime('%Y-%m-%d %H:%M:%S.%f')),
+	('time_local', now.strftime('%Y-%m-%d %H:%M:%S.%f')),
+	('temperature', temperature),
+	('counts', counts),
+	('frequency', frequency),
+	('mpsas', mpsas),
+	('moon_phase_deg', moon_phase_deg),
+	('moon_elev_deg', moon_elev_deg ),
+	('moon_illum', moon_illum ),
+	('latitude', latitude),
+	('longitude', longitude),
+	('elevation', elevation),
+	('apikey', apikey),
+	('checksum', checksum),
 )
 
-response = requests.get('https://darkskynz.org/sqminabox/api.php', params=params, headers={'User-Agent': 'Unihedron SQM-LE and Raspberry Pi'})
+response = requests.post('https://darkskynz.org/sqminabox/api.php', params=params, headers={'User-Agent': 'Unihedron SQM-LE and Raspberry Pi'})
 
 logger.debug(response.content)
 

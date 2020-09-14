@@ -18,12 +18,33 @@ if not os.path.isdir(logpath):
 	
 sqm_logfile = basepath +'logs/sqm.log'
 
+import configparser, sys
+from distutils.util import strtobool
+
+config = configparser.ConfigParser()
+config.read(configfile)
+
+debug = config["debug"]
+debugmode = config.get('debug', 'debugmode')
+
 import logging
 # set up logging to file - see previous section for more details
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%Y-%m-%d %H:%M',
-                    filename=sqm_logfile)
+if debugmode == 'debug':
+	logging.basicConfig(level=logging.DEBUG,
+					format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+					datefmt='%Y-%m-%d %H:%M',
+					filename=sqm_logfile)
+	# define a Handler which writes INFO messages or higher to the sys.stderr
+	console = logging.StreamHandler()
+	console.setLevel(logging.DEBUG)
+else:
+	logging.basicConfig(level=logging.INFO,
+					format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+					datefmt='%Y-%m-%d %H:%M',
+					filename=sqm_logfile)
+	# define a Handler which writes INFO messages or higher to the sys.stderr
+	console = logging.StreamHandler()
+	console.setLevel(logging.INFO)
 
 # define a Handler which writes INFO messages or higher to the sys.stderr
 console = logging.StreamHandler()
@@ -40,42 +61,38 @@ logger = logging.getLogger('set_cron')
 import getpass
 current_user = getpass.getuser()
 
-import configparser, sys
-from distutils.util import strtobool
-
-config = configparser.ConfigParser()
-config.read(configfile)
-
 try:
-    gps = config["gps"]
-    tzn = config.get('gps', 'tzn')
-    lat = config.getfloat('gps', 'lat')
-    lon = config.getfloat('gps', 'lon')
-    elv = config.getfloat('gps', 'elv')
-    desc = config.get('gps', 'desc')
-    station = config["station"]
-    mobilestring = config.get('station', 'is_mobile')
-    is_mobile = strtobool(mobilestring)
-    station_name = config.get('station', 'name')
+	gps = config["gps"]
+	tzn = config.get('gps', 'tzn')
+	lat = config.getfloat('gps', 'lat')
+	lon = config.getfloat('gps', 'lon')
+	elv = config.getfloat('gps', 'elv')
+	desc = config.get('gps', 'desc')
+	station = config["station"]
+	mobilestring = config.get('station', 'is_mobile')
+	is_mobile = strtobool(mobilestring)
+	hasgpsstring = config.get('station', 'has_gps')
+	is_mobile = strtobool(hasgpsstring)
+	station_name = config.get('station', 'name')
 except KeyError as e:
-    logger.warn("Error reading the configuration section {}".format(e))
-    lat, lon, desc = '-36.9', '174.8', 'Auckland'
-    tzn, elv = 'Pacific/Auckland', 17
-    station_name, is_mobile = 'station_name', False
-    
-    config.add_section('gps')
-    config.set('gps', 'tzn', tzn)
-    config.set('gps', 'elv', str(elv))
-    config.set('gps', 'desc', desc)
-    config.set('gps', 'lon', lon)
-    config.set('gps', 'lat', lat)
-    config.add_section('station')
-    config.set('station', 'is_mobile', is_mobile)
-    config.set('station', 'name', station_name)
-    # Writing our configuration file to 'config.ini'
-    with open(configfile, 'wb') as thisconfigfile:
-        config.write(thisconfigfile)
-        thisconfigfile.close()
+	logger.warn("Error reading the configuration section {}".format(e))
+	lat, lon, desc = '-36.9', '174.8', 'Auckland'
+	tzn, elv = 'Pacific/Auckland', 17
+	station_name, is_mobile = 'station_name', False
+	
+	config.add_section('gps')
+	config.set('gps', 'tzn', tzn)
+	config.set('gps', 'elv', str(elv))
+	config.set('gps', 'desc', desc)
+	config.set('gps', 'lon', lon)
+	config.set('gps', 'lat', lat)
+	config.add_section('station')
+	config.set('station', 'is_mobile', is_mobile)
+	config.set('station', 'name', station_name)
+	# Writing our configuration file to 'config.ini'
+	with open(configfile, 'wb') as thisconfigfile:
+		config.write(thisconfigfile)
+		thisconfigfile.close()
 
 import datetime
 from datetime import datetime, timedelta
@@ -106,22 +123,22 @@ DAYLENGTH_NAUTICAL_TWILIGHT = 12.0
 DAYLENGTH_ASTRONOMICAL_TWILIGHT = 18.0
 
 def daylength(ephemeris, topos, degrees):
-    """Build a function of time that returns the daylength.
+	"""Build a function of time that returns the daylength.
 
-    The function that this returns will expect a single argument that is a 
-    :class:`~skyfield.timelib.Time` and will return ``True`` if the sun is up
-    or twilight has started, else ``False``.
-    """
-    sun = ephemeris['sun']
-    topos_at = (ephemeris['earth'] + topos).at
+	The function that this returns will expect a single argument that is a 
+	:class:`~skyfield.timelib.Time` and will return ``True`` if the sun is up
+	or twilight has started, else ``False``.
+	"""
+	sun = ephemeris['sun']
+	topos_at = (ephemeris['earth'] + topos).at
 
-    def is_sun_up_at(t):
-        """Return `True` if the sun has risen by time `t`."""
-        t._nutation_angles = iau2000b(t.tt)
-        return topos_at(t).observe(sun).apparent().altaz()[0].degrees > -degrees
+	def is_sun_up_at(t):
+		"""Return `True` if the sun has risen by time `t`."""
+		t._nutation_angles = iau2000b(t.tt)
+		return topos_at(t).observe(sun).apparent().altaz()[0].degrees > -degrees
 
-    is_sun_up_at.rough_period = 0.5  # twice a day
-    return is_sun_up_at
+	is_sun_up_at.rough_period = 0.5  # twice a day
+	return is_sun_up_at
 
 from skyfield import api
 from skyfield.api import Loader
@@ -157,11 +174,11 @@ logger.debug('result[0][0].item() == 1: ' + str(result[0][0].item() == 1))
 
 astro_times = twil_time.utc_iso()
 if result[0][0].item() == 1:
-    sunset_utc_time = astro_times[1]
-    sunrise_utc_time = astro_times[0]
+	sunset_utc_time = astro_times[1]
+	sunrise_utc_time = astro_times[0]
 else:
-    sunset_utc_time = astro_times[0]
-    sunrise_utc_time = astro_times[1]
+	sunset_utc_time = astro_times[0]
+	sunrise_utc_time = astro_times[1]
 
 logger.debug('UTC Sunset time in ISO8601 format: ' + sunset_utc_time)
 logger.debug('UTC Sunrise time in ISO8601 format: ' + sunrise_utc_time)
@@ -178,29 +195,26 @@ sunrise_localtime = sunrise_date.astimezone(tz)
 
 logger.debug('Local Sunset time: ' + str(sunset_localtime))
 logger.debug('Local Sunrise time: ' + str(sunrise_localtime))
-    
+	
 config.set('suntimes', 'next_sunrise', str(sunrise_localtime))
 config.set('suntimes', 'next_sunset', str(sunset_localtime))
 # Writing our configuration file to 'config.ini'
 with open(configfile, 'wb') as thisconfigfile:
-    config.write(thisconfigfile)
-    thisconfigfile.close()
+	config.write(thisconfigfile)
+	thisconfigfile.close()
 
 if now < sunset_localtime + timedelta(seconds=300) and now > sunset_localtime - timedelta(seconds=300):
-    next_set_cron = sunrise_localtime
+	next_set_cron = sunrise_localtime
 elif now < sunrise_localtime + timedelta(seconds=300) and now > sunrise_localtime - timedelta(seconds=300):
-    next_set_cron = sunset_localtime
+	next_set_cron = sunset_localtime
 else:
-    #next_set_cron = sunrise_localtime
-    next_set_cron = sunset_localtime
-    
+	#next_set_cron = sunrise_localtime
+	next_set_cron = sunset_localtime
+	
 logger.debug('next_set_cron: ' + str(next_set_cron))
 
 jobhour = sunset_localtime.hour
 jobminute = sunset_localtime.minute
-jobexists = False
-jobenable = False
-
 
 from crontab import CronTab
 my_cron = CronTab(user=current_user)
@@ -211,73 +225,71 @@ if not my_cron.find_comment('Query GPS'):
 	get_gps = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_gps_coordinates.py', comment="Query GPS")
 	get_gps.minute.every(1)
 	get_gps.enable(False)
-    logger.debug('Query GPS job created successfully')
+	logger.debug('Query GPS job created successfully')
 
 if not my_cron.find_comment('Query SQM'):
 	get_sqm = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_sqm_reading.py', comment="Query SQM")
 	get_sqm.minute.every(1)
-    logger.debug('Query SQM job created successfully')
+	get_sqm.enable(False)
+	logger.debug('Query SQM job created successfully')
 	
 if not my_cron.find_comment('Sunrise cron'):
-    sunrise_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunrise_cron.py', comment="Sunrise cron")
+	sunrise_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunrise_cron.py', comment="Sunrise cron")
 	sunrise_cron.minute.on(30)
 	sunrise_cron.hour.on(5)
 	sunrise_cron.enable(True)
-    logger.debug('Sunrise cron job created successfully')
+	logger.debug('Sunrise cron job created successfully')
 
 if not my_cron.find_comment('Sunset cron'):
 	sunset_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunset_cron.py', comment="Sunset cron")
 	sunset_cron.minute.on(nowplus5min.minute)
 	sunset_cron.hour.on(nowplus5min.hour)
 	sunset_cron.enable(True)
-    logger.debug('Sunset cron job created successfully')
+	logger.debug('Sunset cron job created successfully')
 
 if not my_cron.find_comment('Startup cron'):
 	startup_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/startup.py', comment="Startup cron")
 	startup_cron.every_reboot()
 	my_cron.write()
-    logger.debug('Startup cron job created successfully')
+	logger.debug('Startup cron job created successfully')
 
 for job in my_cron:
-    if job.comment == 'Sunset cron':
-        job.hour.on(sunset_localtime.hour)
-        job.minute.on(sunset_localtime.minute)
-        job.enable(True)
-        logger.debug('sunset_localtime.hour: ' + str(sunset_localtime.hour))
-        logger.debug('sunset_localtime.minute: ' + str(sunset_localtime.minute))
-        logger.debug('jobenable: ' + str(jobenable))
-        logger.debug('job: ' +str(job))
-        jobexists = True
-        logger.debug('Sunset cron job modified successfully')
-    elif job.comment == 'Sunrise cron':
-        job.hour.on(sunrise_localtime.hour)
-        job.minute.on(sunrise_localtime.minute)
-        job.enable(True)
-        logger.debug('sunrise_localtime.hour: ' + str(sunrise_localtime.hour))
-        logger.debug('sunrise_localtime.minute: ' + str(sunrise_localtime.minute))
-        logger.debug('jobenable: ' + str(jobenable))
-        logger.debug('job: ' +str(job))
-        jobexists = True
-        logger.debug('Sunrise cron job modified successfully')
-    elif job.comment == 'Query GPS':
-        if has_gps == True:
-            if is_mobile == True:
-                job.minute.every(5) # every 5th minute
-            else:
-                job.hour.on(sunset_localtime.hour)
-                job.minute.on(sunset_localtime.minute)
-        else:
-            jobenable = False
-        logger.debug('job: ' +str(job))
-        logger.debug('Query GPS cron job modified successfully')
-    elif job.comment == 'Query SQM':
-        if has_gps == True:
-            if is_mobile == True:
-                job.minute.every(5) # every 5th minute
-            else:
-                job.minute.every(1) # every minute
-        job.enable(False)
-        logger.debug('job: ' + str(job))
-        logger.debug('Query SQM job modified successfully')
-
+	if job.comment == 'Sunset cron':
+		job.hour.on(sunset_localtime.hour)
+		job.minute.on(sunset_localtime.minute)
+		job.enable(True)
+		logger.debug('sunset_localtime.hour: ' + str(sunset_localtime.hour))
+		logger.debug('sunset_localtime.minute: ' + str(sunset_localtime.minute))
+		logger.debug('jobenable: ' + str(jobenable))
+		logger.debug('job: ' +str(job))
+		logger.debug('Sunset cron job modified successfully')
+	elif job.comment == 'Sunrise cron':
+		job.hour.on(sunrise_localtime.hour)
+		job.minute.on(sunrise_localtime.minute)
+		job.enable(True)
+		logger.debug('sunrise_localtime.hour: ' + str(sunrise_localtime.hour))
+		logger.debug('sunrise_localtime.minute: ' + str(sunrise_localtime.minute))
+		logger.debug('job: ' +str(job))
+		logger.debug('Sunrise cron job modified successfully')
+	elif job.comment == 'Query GPS':
+		if has_gps == True:
+			if is_mobile == True:
+				job.minute.every(5) # every 5th minute
+			else:
+				job.hour.on(sunset_localtime.hour)
+				job.minute.on(sunset_localtime.minute)
+		else:
+			job.enable(False)
+		logger.debug('job: ' +str(job))
+		logger.debug('Query GPS cron job modified successfully')
+	elif job.comment == 'Query SQM':
+		if has_gps == True:
+			if is_mobile == True:
+				job.minute.every(5) # every 5th minute
+				job.enable(False)
+			else:
+				job.minute.every(1) # every minute
+				job.enable(False)
+		logger.debug('job: ' + str(job))
+		logger.debug('Query SQM job modified successfully')
 my_cron.write()

@@ -215,34 +215,11 @@ logger.debug('next_set_cron: ' + str(next_set_cron))
 
 jobhour = sunset_localtime.hour
 jobminute = sunset_localtime.minute
-jobexists = False
-jobenable = False
-
 
 from crontab import CronTab
 my_cron = CronTab(user=current_user)
 
-logger.debug('Length of my_cron: ' + str(len(my_cron)))
-
-if len(my_cron) == 0:
 #    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
-	get_gps = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_gps_coordinates.py', comment="Query GPS")
-	get_gps.minute.every(1)
-	get_gps.enable(has_gps)
-	get_sqm = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_sqm_reading.py', comment="Query SQM")
-	get_sqm.minute.every(1)
-	sunrise_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunrise_cron.py', comment="Sunrise cron")
-	sunrise_cron.minute.on(30)
-	sunrise_cron.hour.on(5)
-	sunrise_cron.enable(True)
-	sunset_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunset_cron.py', comment="Sunset cron")
-	sunset_cron.minute.on(nowplus5min.minute)
-	sunset_cron.hour.on(nowplus5min.hour)
-	sunset_cron.enable(True)
-	startup_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/startup.py', comment="Startup cron")
-	startup_cron.every_reboot()
-	my_cron.write()
-	logger.debug('New cron jobs created successfully')
 
 for job in my_cron:
     if job.comment == 'Query SQM':
@@ -263,7 +240,7 @@ for job in my_cron:
     elif job.comment == 'Sunrise cron':
         job.hour.on(sunrise_localtime.hour)
         job.minute.on(sunrise_localtime.minute)
-        job.enable(jobenable)
+        job.enable(True)
         logger.debug('job: ' +str(job))
         logger.debug('Sunrise cron job modified successfully')
     elif job.comment == 'Query GPS':
@@ -276,5 +253,23 @@ for job in my_cron:
         job.enable(has_gps)
         logger.debug('job: ' +str(job))
         logger.debug('Query GPS cron job modified successfully')
+    else:
+        get_gps = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_gps_coordinates.py', comment="Query GPS")
+        get_gps.minute.every(1)
+        get_gps.enable(has_gps)
+        get_sqm = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_sqm_reading.py', comment="Query SQM")
+        get_sqm.minute.every(1)
+        get_sqm.enable(False)
+        sunrise_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunrise_cron.py', comment="Sunrise cron")
+        sunrise_cron.minute.on(sunrise_localtime.minute)
+        sunrise_cron.hour.on(sunrise_localtime.hour)
+        sunrise_cron.enable(True)
+        sunset_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunset_cron.py', comment="Sunset cron")
+        sunset_cron.minute.on(nowplus5min.minute)
+        sunset_cron.hour.on(nowplus5min.hour)
+        sunset_cron.enable(True)
+        startup_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/startup.py', comment="Startup cron")
+        startup_cron.every_reboot()
+        logger.debug('New cron jobs created successfully')
 
 my_cron.write()
