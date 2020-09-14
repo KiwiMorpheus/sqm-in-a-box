@@ -72,27 +72,10 @@ try:
 	mobilestring = config.get('station', 'is_mobile')
 	is_mobile = strtobool(mobilestring)
 	hasgpsstring = config.get('station', 'has_gps')
-	is_mobile = strtobool(hasgpsstring)
+	has_gps = strtobool(hasgpsstring)
 	station_name = config.get('station', 'name')
 except KeyError as e:
 	logger.warn("Error reading the configuration section {}".format(e))
-	lat, lon, desc = '-36.9', '174.8', 'Auckland'
-	tzn, elv = 'Pacific/Auckland', 17
-	station_name, is_mobile = 'station_name', False
-	
-	config.add_section('gps')
-	config.set('gps', 'tzn', tzn)
-	config.set('gps', 'elv', str(elv))
-	config.set('gps', 'desc', desc)
-	config.set('gps', 'lon', lon)
-	config.set('gps', 'lat', lat)
-	config.add_section('station')
-	config.set('station', 'is_mobile', is_mobile)
-	config.set('station', 'name', station_name)
-	# Writing our configuration file to 'config.ini'
-	with open(configfile, 'wb') as thisconfigfile:
-		config.write(thisconfigfile)
-		thisconfigfile.close()
 
 import datetime
 from datetime import datetime, timedelta
@@ -253,6 +236,8 @@ if not my_cron.find_comment('Startup cron'):
 	my_cron.write()
 	logger.debug('Startup cron job created successfully')
 
+my_cron.write()
+
 for job in my_cron:
 	if job.comment == 'Sunset cron':
 		job.hour.on(sunset_localtime.hour)
@@ -260,7 +245,6 @@ for job in my_cron:
 		job.enable(True)
 		logger.debug('sunset_localtime.hour: ' + str(sunset_localtime.hour))
 		logger.debug('sunset_localtime.minute: ' + str(sunset_localtime.minute))
-		logger.debug('jobenable: ' + str(jobenable))
 		logger.debug('job: ' +str(job))
 		logger.debug('Sunset cron job modified successfully')
 	elif job.comment == 'Sunrise cron':
@@ -292,4 +276,5 @@ for job in my_cron:
 				job.enable(False)
 		logger.debug('job: ' + str(job))
 		logger.debug('Query SQM job modified successfully')
+
 my_cron.write()
