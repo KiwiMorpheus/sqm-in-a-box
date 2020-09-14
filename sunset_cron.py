@@ -180,6 +180,8 @@ config.set('sqm', 'sqmdatafile', sqmdatafile)
 logger.debug('datapath: ' + datapath)
 logger.debug('sqmdatafile: ' + sqmdatafile)
 
+import zlib
+
 checksum = hex(zlib.crc32( device_serial + device_type + instrument_id + apikey))[2:]
 logger.debug('checksum: ' + checksum)
 
