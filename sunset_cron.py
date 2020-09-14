@@ -171,9 +171,9 @@ timestr = now.strftime("%Y%m%d_%H%M%S")
 sqmdatafile = timestr + '_' + instrument_id + '.dat'
 
 if not os.path.isfile(datapath + sqmdatafile):
-	with open(datapath + sqmdatafile, 'w+') as datafile:
+    with open(datapath + sqmdatafile, 'w+') as datafile:
         datafile.write('utc_now.isoformat; now.isoformat; temperature; counts; frequency; mpsas; moon_phase_deg; moon_elev_deg; moon_illum latitude; logitude; elevation')
-		datafile.close()
+        datafile.close()
 
 config.set('sqm', 'sqmdatafile', sqmdatafile)
 
