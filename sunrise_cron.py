@@ -46,9 +46,6 @@ else:
 	console = logging.StreamHandler()
 	console.setLevel(logging.INFO)
 
-# define a Handler which writes INFO messages or higher to the sys.stderr
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
 # set a format which is simpler for console use
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 # tell the handler to use this format
@@ -74,6 +71,15 @@ try:
 	hasgpsstring = config.get('station', 'has_gps')
 	has_gps = strtobool(hasgpsstring)
 	station_name = config.get('station', 'name')
+	sqm = config["sqm"]
+	sqmdatafile = config.get('sqm', 'sqmdatafile')
+	mail = config["mail"]
+	smtp_server = config.get('mail', 'smtp_server')
+	smtp_port = config.getint('mail', 'smtp_port')
+	mailbox_username = config.get('mail', 'mailbox_username')
+	mailbox_password = config.get('mail', 'mailbox_password')
+	recipient = config.get('mail', 'recipient')
+	frequency = config.get('mail', 'frequency')
 except KeyError as e:
 	logger.warn("Error reading the configuration section {}".format(e))
 
@@ -278,3 +284,53 @@ for job in my_cron:
 		logger.debug('Query SQM job modified successfully')
 
 my_cron.write()
+
+""" if frequency != 'none':
+	if frequency == 'weekly':
+		#get the last 7 data files and zip them """
+
+# libraries to be imported 
+import smtplib 
+from email.mime.multipart import MIMEMultipart 
+from email.mime.text import MIMEText 
+from email.mime.base import MIMEBase 
+from email import encoders
+
+fromaddr = mailbox_username
+toaddr = recipient
+# instance of MIMEMultipart 
+msg = MIMEMultipart() 
+# storing the senders email address 
+msg['From'] = fromaddr 
+# storing the receivers email address 
+msg['To'] = toaddr 
+# storing the subject 
+msg['Subject'] = "Testing email with attachment"
+# string to store the body of the mail 
+body = "This is a cool message"
+# attach the body with the msg instance 
+msg.attach(MIMEText(body, 'plain')) 
+# open the file to be sent 
+filename = sqmdatafile
+attachment = open("data/" + sqmdatafile, "rb") 
+# instance of MIMEBase and named as p 
+p = MIMEBase('application', 'octet-stream') 
+# To change the payload into encoded form 
+p.set_payload((attachment).read()) 
+# encode into base64 
+encoders.encode_base64(p) 
+p.add_header('Content-Disposition', "attachment; filename= %s" % filename) 
+# attach the instance 'p' to instance 'msg' 
+msg.attach(p) 
+# creates SMTP session 
+s = smtplib.SMTP(smtp_server, smtp_port) 
+# start TLS for security 
+s.starttls() 
+# Authentication 
+s.login(fromaddr, mailbox_password) 
+# Converts the Multipart msg into a string 
+text = msg.as_string() 
+# sending the mail 
+s.sendmail(fromaddr, toaddr, text) 
+# terminating the session 
+s.quit() 
