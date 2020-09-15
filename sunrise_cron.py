@@ -148,7 +148,7 @@ t1 = ts.utc(tz.normalize(datetime.now(tz) + timedelta(1)))
 #print(center_time.utc_iso(), center_up)
 
 #astro_twil_time, astro_twil_up = almanac.find_discrete(t0, t1, daylength(planets, loc, DAYLENGTH_ASTRONOMICAL_TWILIGHT))
-twil_time, twil_up = almanac.find_discrete(t0, t1, daylength(planets, loc, DAYLENGTH_CIVIL_TWILIGHT))
+twil_time, twil_up = almanac.find_discrete(t0, t1, daylength(planets, loc, DAYLENGTH_CENTER_HORIZON))
 #print('Astronomical twilight:')
 #print('Civil twilight:')
 logger.debug('Civil Twilight: ' + str(twil_time.utc_iso()) + ', ' + str(twil_up))
