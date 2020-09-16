@@ -155,6 +155,9 @@ next_sunset = dateutil.parser.parse(next_sunset_string)
 logger.debug('last_gps_read: ' + str(last_gps_read))
 logger.debug(type(last_gps_read))
 
+import time
+time.sleep(15)
+
 tz = pytz.timezone(tzn)
 now = datetime.now(tz)
 
