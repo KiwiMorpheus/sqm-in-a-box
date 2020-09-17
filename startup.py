@@ -148,6 +148,7 @@ try:
 	smtp_port = int(config.get('mail', 'smtp_port'))
 	mailbox_username = config.get('mail', 'mailbox_username')
 	mailbox_password = config.get('mail', 'mailbox_password')
+	frequency = config.get('mail', 'frequency')
 
 	emailContent += 'Read values from config.ini\r\n'
 except KeyError as e:
@@ -342,6 +343,34 @@ if is_configured == False:
 		startup_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/startup.py', comment="Startup cron")
 		startup_cron.every_reboot()
 		logger.debug('Startup cron job created successfully')
+
+	cronjobs = my_cron.find_comment('Send data')
+	job_exists = False
+
+	for job in cronjobs:
+		logger.debug('str(job): ' + str(job))
+		if "Send data" in str(job):
+			job_exists = True
+			logger.debug('Send data cron job exists')
+			break
+
+	if not job_exists:
+		send_data_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/send_data.py', comment="Send data")
+		send_data_cron.enable(True)
+		if frequency == 'daily':
+			send_data_cron.minute.on(0)
+			send_data_cron.hour.on(9)
+		elif frequency == 'weekly':
+			send_data_cron.minute.on(0)
+			send_data_cron.hour.on(9)
+			send_data_cron.dow.on('MON')
+		elif frequency == 'monthly':
+			send_data_cron.minute.on(0)
+			send_data_cron.hour.on(9)
+			send_data_cron.day.on(1)
+		else:
+			send_data_cron.enable(False)
+		logger.debug('Send data cron job created successfully')
 
 	my_cron.write()
 

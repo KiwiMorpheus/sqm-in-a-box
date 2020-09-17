@@ -74,11 +74,6 @@ try:
 	sqm = config["sqm"]
 	sqmdatafile = config.get('sqm', 'sqmdatafile')
 	mail = config["mail"]
-	smtp_server = config.get('mail', 'smtp_server')
-	smtp_port = config.getint('mail', 'smtp_port')
-	mailbox_username = config.get('mail', 'mailbox_username')
-	mailbox_password = config.get('mail', 'mailbox_password')
-	recipient = config.get('mail', 'recipient')
 	frequency = config.get('mail', 'frequency')
 except KeyError as e:
 	logger.warn("Error reading the configuration section {}".format(e))
@@ -209,7 +204,7 @@ from crontab import CronTab
 my_cron = CronTab(user=current_user)
 
 #my_cron.env['MAILTO'] = 'justin@darkskynz.org'
-exists_query_gps = exists_query_sqm = exists_sunrise_cron = exists_sunset_cron = exists_startup_cron = False
+exists_query_gps = exists_query_sqm = exists_sunrise_cron = exists_sunset_cron = exists_startup_cron = exists_send_data = False
 
 for job in my_cron:
 	if "Query GPS" in str(job):
@@ -222,6 +217,8 @@ for job in my_cron:
 		exists_sunset_cron = True
 	if "Startup cron" in str(job):
 		exists_startup_cron = True
+	if "Send data" in str(job):
+		exists_send_data = True
 
 if exists_query_gps == True:
 	for job in my_cron.find_comment('Query GPS'):
@@ -296,54 +293,39 @@ elif exists_sunset_cron == False:
 	sunset_cron.enable(True)
 	logger.debug('Sunset cron job created successfully')
 
+if exists_send_data == True:
+	for job in my_cron.find_comment('Send data'):
+		job.enable(True)
+		if frequency == 'daily':
+			job.minute.on(0)
+			job.hour.on(9)
+		elif frequency == 'weekly':
+			job.minute.on(0)
+			job.hour.on(9)
+			job.dow.on('MON')
+		elif frequency == 'monthly':
+			job.minute.on(0)
+			job.hour.on(9)
+			job.day.on(1)
+		else:
+			job.enable(False)
+	logger.debug('Send data cron job modified successfully')
+elif exists_send_data == False:
+	send_data_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/send_data.py', comment="Send data")
+	send_data_cron.enable(True)
+	if frequency == 'daily':
+		send_data_cron.minute.on(0)
+		send_data_cron.hour.on(9)
+	elif frequency == 'weekly':
+		send_data_cron.minute.on(0)
+		send_data_cron.hour.on(9)
+		send_data_cron.dow.on('MON')
+	elif frequency == 'monthly':
+		send_data_cron.minute.on(0)
+		send_data_cron.hour.on(9)
+		send_data_cron.day.on(1)
+	else:
+		send_data_cron.enable(False)
+	logger.debug('Send data cron job created successfully')
+
 my_cron.write()
-
-""" if frequency != 'none':
-	if frequency == 'weekly':
-		#get the last 7 data files and zip them """
-
-# libraries to be imported 
-import smtplib 
-from email.mime.multipart import MIMEMultipart 
-from email.mime.text import MIMEText 
-from email.mime.base import MIMEBase 
-from email import encoders
-
-fromaddr = mailbox_username
-toaddr = recipient
-# instance of MIMEMultipart 
-msg = MIMEMultipart() 
-# storing the senders email address 
-msg['From'] = fromaddr 
-# storing the receivers email address 
-msg['To'] = toaddr 
-# storing the subject 
-msg['Subject'] = "Testing email with attachment"
-# string to store the body of the mail 
-body = "This is a cool message"
-# attach the body with the msg instance 
-msg.attach(MIMEText(body, 'plain')) 
-# open the file to be sent 
-filename = sqmdatafile
-attachment = open("data/" + sqmdatafile, "rb") 
-# instance of MIMEBase and named as p 
-p = MIMEBase('application', 'octet-stream') 
-# To change the payload into encoded form 
-p.set_payload((attachment).read()) 
-# encode into base64 
-encoders.encode_base64(p) 
-p.add_header('Content-Disposition', "attachment; filename= %s" % filename) 
-# attach the instance 'p' to instance 'msg' 
-msg.attach(p) 
-# creates SMTP session 
-s = smtplib.SMTP(smtp_server, smtp_port) 
-# start TLS for security 
-s.starttls() 
-# Authentication 
-s.login(fromaddr, mailbox_password) 
-# Converts the Multipart msg into a string 
-text = msg.as_string() 
-# sending the mail 
-s.sendmail(fromaddr, toaddr, text) 
-# terminating the session 
-s.quit() 

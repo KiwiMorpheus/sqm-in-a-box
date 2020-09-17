@@ -10,7 +10,7 @@ Setup Steps
 
 2. Run the following commands to install the required Python packages.
     sudo apt-get install python-distutils
-    sudo pip install pytx pytz datetime tzlocal skyfield python-crontab
+    sudo pip install pytx pytz datetime tzlocal skyfield python-crontab python-dateutil
 
 3. Create the logs path
     mkdir -p ~/sqm-in-a-box/logs/

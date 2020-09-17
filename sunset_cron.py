@@ -56,24 +56,26 @@ logging.getLogger('').addHandler(console)
 logger = logging.getLogger('set_cron')
 
 try:
-    gps = config["gps"]
-    tzn = config.get('gps', 'tzn')
-    lat = config.getfloat('gps', 'lat')
-    lon = config.getfloat('gps', 'lon')
-    elv = config.getfloat('gps', 'elv')
-    desc = config.get('gps', 'desc')
-    station = config["station"]
-    mobilestring = config.get('station', 'is_mobile')
-    is_mobile = strtobool(mobilestring)
-    has_gps_str = config.get('station', 'has_gps')
-    has_gps = strtobool(has_gps_str)
-    station_name = config.get('station', 'name')
-    apikey = config.get('station', 'apikey')
-    station = config["sqm"]
-    instrument_id = config.get('sqm', 'instrument_id')
-    device_serial = config.get('sqm', 'serial')
-    device_type = config.get('sqm', 'type')
-    sqmdatafile = config.get('sqm', 'sqmdatafile')
+	gps = config["gps"]
+	tzn = config.get('gps', 'tzn')
+	lat = config.getfloat('gps', 'lat')
+	lon = config.getfloat('gps', 'lon')
+	elv = config.getfloat('gps', 'elv')
+	desc = config.get('gps', 'desc')
+	station = config["station"]
+	mobilestring = config.get('station', 'is_mobile')
+	is_mobile = strtobool(mobilestring)
+	has_gps_str = config.get('station', 'has_gps')
+	has_gps = strtobool(has_gps_str)
+	station_name = config.get('station', 'name')
+	apikey = config.get('station', 'apikey')
+	station = config["sqm"]
+	instrument_id = config.get('sqm', 'instrument_id')
+	device_serial = config.get('sqm', 'serial')
+	device_type = config.get('sqm', 'type')
+	sqmdatafile = config.get('sqm', 'sqmdatafile')
+	mail = config["mail"]
+	frequency = config.get('mail', 'frequency')
 except KeyError as e:
     logger.warn("Error reading the configuration section {}".format(e))
 
@@ -238,7 +240,7 @@ from crontab import CronTab
 my_cron = CronTab(user=current_user)
 
 #    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
-exists_query_gps = exists_query_sqm = exists_sunrise_cron = exists_sunset_cron = exists_startup_cron = False
+exists_query_gps = exists_query_sqm = exists_sunrise_cron = exists_sunset_cron = exists_startup_cron = exists_send_data = False
 
 for job in my_cron:
 	if "Query GPS" in str(job):
@@ -251,6 +253,8 @@ for job in my_cron:
 		exists_sunset_cron = True
 	if "Startup cron" in str(job):
 		exists_startup_cron = True
+	if "Send data" in str(job):
+		exists_send_data = True
 
 if exists_query_gps == True:
     for job in my_cron.find_comment('Query GPS'):
@@ -324,5 +328,40 @@ elif exists_sunset_cron == False:
 	sunset_cron.hour.on(nowplus5min.hour)
 	sunset_cron.enable(True)
 	logger.debug('Sunset cron job created successfully')
+
+if exists_send_data == True:
+	for job in my_cron.find_comment('Send data'):
+		job.enable(True)
+		if frequency == 'daily':
+			job.minute.on(0)
+			job.hour.on(9)
+		elif frequency == 'weekly':
+			job.minute.on(0)
+			job.hour.on(9)
+			job.dow.on('MON')
+		elif frequency == 'monthly':
+			job.minute.on(0)
+			job.hour.on(9)
+			job.day.on(1)
+		else:
+			job.enable(False)
+	logger.debug('Send data cron job modified successfully')
+elif exists_send_data == False:
+	send_data_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/send_data.py', comment="Send data")
+	send_data_cron.enable(True)
+	if frequency == 'daily':
+		send_data_cron.minute.on(0)
+		send_data_cron.hour.on(9)
+	elif frequency == 'weekly':
+		send_data_cron.minute.on(0)
+		send_data_cron.hour.on(9)
+		send_data_cron.dow.on('MON')
+	elif frequency == 'monthly':
+		send_data_cron.minute.on(0)
+		send_data_cron.hour.on(9)
+		send_data_cron.day.on(1)
+	else:
+		send_data_cron.enable(False)
+	logger.debug('Send data cron job created successfully')
 
 my_cron.write()
