@@ -240,7 +240,7 @@ from crontab import CronTab
 my_cron = CronTab(user=current_user)
 
 #    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
-exists_query_gps = exists_query_sqm = exists_sunrise_cron = exists_sunset_cron = exists_startup_cron = exists_send_data = False
+exists_query_gps = exists_query_sqm = exists_sunrise_cron = exists_sunset_cron = exists_startup_cron = exists_send_data = exists_git_pull = False
 
 for job in my_cron:
 	if "Query GPS" in str(job):
@@ -256,7 +256,7 @@ for job in my_cron:
 	if "Send data" in str(job):
 		exists_send_data = True
 	if "git pull code updates":
-		git_pull = True
+		exists_git_pull = True
 
 if exists_query_gps == True:
     for job in my_cron.find_comment('Query GPS'):
@@ -299,8 +299,8 @@ if exists_startup_cron == False:
 	my_cron.write()
 	logger.debug('Startup cron job created successfully')
 
-if git_pull == False:
-	startup_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull', comment="git pull code updates")
+if exists_git_pull == False:
+	update_git_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull && https://darkskynz.org/sqminabox/api.php?action=update_processed&apikey=' + apikey, comment="git pull code updates")
 	job.hour.on(12)
 	job.minute.on(0)
 	job.enable(False)
