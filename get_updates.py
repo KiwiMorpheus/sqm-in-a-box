@@ -113,56 +113,84 @@ for each_section in config.sections():
     for (each_key, each_val) in config.items(each_section):
         logger.debug(each_key + ' : ' + each_val)
 
-import datetime
-from datetime import datetime
-import pytz, tzlocal
+if apikey != "":
+    import datetime
+    from datetime import datetime
+    import pytz, tzlocal
 
-tz = pytz.timezone(tzn)
-now = datetime.now(tz)
+    tz = pytz.timezone(tzn)
+    now = datetime.now(tz)
 
-import requests
-updatefile = '/tmp/update.txt'
-url = 'https://darkskynz.org/sqminabox/' + apikey + "/update.txt"
-logger.debug('Request URL: ' + url)
-myfile = requests.get(url, headers={'User-Agent': 'Unihedron SQM-LE and Raspberry Pi'})
-open('/tmp/update.txt', 'wb').write(myfile.content)
+    import requests
+    updatefile = '/tmp/update.txt'
+    url = 'https://darkskynz.org/sqminabox/' + apikey + "/update.txt"
+    logger.debug('Request URL: ' + url)
+    myfile = requests.get(url, headers={'User-Agent': 'Unihedron SQM-LE and Raspberry Pi'})
+    open('/tmp/update.txt', 'wb').write(myfile.content)
 
-logger.debug('Update file')
+    logger.debug('Update file')
 
-update = configparser.ConfigParser()
-update.read(updatefile)
+    update = configparser.ConfigParser()
+    update.read(updatefile)
 
-updatelog = open('/tmp/update.log', "w+")
-something_changed = False
+    updatelog = open('/tmp/update.log', "w+")
+    something_changed = False
 
-for each_section in update.sections():
-    logger.debug('Section: ' + each_section)
-    for (each_key, each_val) in update.items(each_section):
-        old_value = config.get(each_section, each_key)
-        logger.debug('Key: ' + each_key + ' : ' + old_value + ' : ' + each_val)
-        if old_value != each_val:
-            something_changed = True
-            config.set(each_section, each_key, str(each_val))
-            str_updated_value = str(now.isoformat()) + ' : ' + str(each_section) + ' : ' + str(each_key) + ' : ' + str(old_value) + ' ; ' + str(each_val) + '\n'
-            updatelog.write(str_updated_value)
+    for each_section in update.sections():
+        logger.debug('Section: ' + each_section)
+        for (each_key, each_val) in update.items(each_section):
+            old_value = config.get(each_section, each_key)
+            logger.debug('Key: ' + each_key + ' : ' + old_value + ' : ' + each_val)
+            if old_value != each_val:
+                something_changed = True
+                config.set(each_section, each_key, str(each_val))
+                str_updated_value = str(now.isoformat()) + ' : ' + str(each_section) + ' : ' + str(each_key) + ' : ' + str(old_value) + ' ; ' + str(each_val) + '\n'
+                updatelog.write(str_updated_value)
 
-if something_changed == False:
-    updatelog.write('Nothing changed!')
+    if something_changed == False:
+        updatelog.write('Nothing changed!')
 
-# Writing our configuration file to 'config.ini'
-with open(configfile, 'wb') as thisconfigfile:
-    config.write(thisconfigfile)
-    thisconfigfile.close()
-    shutil.copy(configfile, basepath + 'config.ini')
-
-
-update_code = strtobool(config.get('station', 'update_code'))
-if update_code == True:
-    print('Set git cron to run midday')
+    # Writing our configuration file to 'config.ini'
+    with open(configfile, 'wb') as thisconfigfile:
+        config.write(thisconfigfile)
+        thisconfigfile.close()
+        shutil.copy(configfile, basepath + 'config.ini')
 
 
+    git_pull = config.get('station', 'update_code')
+    if git_pull == 'False':
+        import getpass
+        current_user = getpass.getuser()
 
-updatelog.close()
+        from crontab import CronTab
+        my_cron = CronTab(user=current_user)
 
+        #    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
+        exists_update_git = False
 
+        for job in my_cron:
+            if "git pull code updates" in str(job):
+                exists_update_git = True
+        
+        if exists_update_git == True:
+            for job in my_cron.find_comment('git pull code updates'):
+                if git_pull == 'urgent':
+                    job.minute.every(15)
+                    job.enable(True)
+                elif git_pull == 'scheduled':
+                    job.hour.on(12)
+                    job.minute.on(0)
+                    job.enable(True)
+                else:
+                    job.enable(False)
+                logger.debug('job: ' +str(job))
+                logger.debug('Query GPS cron job modified successfully')
+        elif exists_update_git == False:
+            startup_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull && https://darkskynz.org/sqminabox/api.php?action=update_processed&apikey=' + apikey, comment="git pull code updates")
+            job.hour.on(12)
+            job.minute.on(0)
+            job.enable(False)
+            my_cron.write()
+            logger.debug('git pull code updates cron job created successfully')
 
+    updatelog.close()

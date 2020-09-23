@@ -299,13 +299,13 @@ if exists_startup_cron == False:
 	my_cron.write()
 	logger.debug('Startup cron job created successfully')
 
-	if git_pull == False:
-		startup_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull', comment="git pull code updates")
-		job.hour.on(12)
-		job.minute.on(0)
-		job.enable(False)
-		my_cron.write()
-		logger.debug('git pull code updates cron job created successfully')
+if git_pull == False:
+	startup_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull', comment="git pull code updates")
+	job.hour.on(12)
+	job.minute.on(0)
+	job.enable(False)
+	my_cron.write()
+	logger.debug('git pull code updates cron job created successfully')
 
 if exists_sunrise_cron == True:
 	for job in my_cron.find_comment('Sunrise cron'):

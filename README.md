@@ -8,9 +8,10 @@ Setup Steps
 1. Install pip
     Linux with apt/apt-get: sudo apt-get install python-pip
 
-2. Run the following commands to install the required Python packages and the git client.
-    sudo apt-get install python-distutils git
-    sudo pip install pytx pytz datetime tzlocal skyfield python-crontab python-dateutil
+2. Run the following commands to install the required Python packages and the git client. 
+    sudo apt-get install python-dev python-distutils-extra python-pip python-numpy git dnsutils
+    
+    sudo pip install pytx pytz datetime tzlocal skyfield python-crontab python-dateutil requests
 
 3. Download the SQM-in-a-Box scripts.
     git clone https://github.com/KiwiMorpheus/sqm-in-a-box.git
@@ -33,6 +34,9 @@ Setup Steps
             If the smtp_server setting is left at the default settings the first time the startup.py is run it will update these settings.
 
 4. Run SQM-in-a-Box startup.py script to configure your station.
+    cd sqm-in-a-box
+    python startup.py
+
     This will setup your station depending on the config.ini settings from step 3.
     Task cron jobs will be setup and configured as follows(These do not rquire root access)
         Query SQM - This task queries the SQM Meter every minute from sunset to sunrise, except if mobile then every 5 minutes.
