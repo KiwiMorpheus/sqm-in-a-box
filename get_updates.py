@@ -186,7 +186,7 @@ if apikey != "":
                 logger.debug('job: ' +str(job))
                 logger.debug('Query GPS cron job modified successfully')
         elif exists_update_git == False:
-            startup_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull && https://darkskynz.org/sqminabox/api.php?action=update_processed&apikey=' + apikey, comment="git pull code updates")
+            update_git_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull && https://darkskynz.org/sqminabox/api.php?action=update_processed&apikey=' + apikey, comment="git pull code updates")
             job.hour.on(12)
             job.minute.on(0)
             job.enable(False)
