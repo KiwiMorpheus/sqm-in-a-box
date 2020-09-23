@@ -91,7 +91,7 @@ sending_filename = str_today + '-' + instrument_id + '.zip'
 zipObj = ZipFile('/tmp/' + sending_filename, 'w')
  
 if frequency.lower() == 'daily':
-    email_body_period = [' is yesterdays', '']
+    email_body_period = ['is yesterdays', '']
     #get the last data file and zip it
     zipObj.write(datapath + sqmdatafile, sqmdatafile)
 elif frequency.lower() == 'weekly':
@@ -120,11 +120,12 @@ elif frequency == 'monthly':
 zipObj.close()
 
 # libraries to be imported 
-import smtplib 
+import smtplib, email
 from email.mime.multipart import MIMEMultipart 
 from email.mime.text import MIMEText 
 from email.mime.base import MIMEBase 
 from email import encoders
+from email import header
 
 fromaddr = mailbox_username
 toaddr = recipient
@@ -134,8 +135,11 @@ msg = MIMEMultipart()
 msg['From'] = fromaddr 
 # storing the receivers email address 
 msg['To'] = toaddr 
+# string some required headers
+msg['Date'] = email.header.Header( email.utils.formatdate(localtime=True) )
+msg['Message-ID'] = email.header.Header( email.utils.make_msgid() )
 # storing the subject 
-msg['Subject'] = str_today + "SQM Data from " + instrument_id
+msg['Subject'] = str_today + " SQM Data from " + instrument_id
 # string to store the body of the mail 
 body = 'Attached ' + email_body_period[0] + ' SQM data file' + email_body_period[1]
 # attach the body with the msg instance 
@@ -160,6 +164,6 @@ s.login(fromaddr, mailbox_password)
 # Converts the Multipart msg into a string 
 text = msg.as_string() 
 # sending the mail 
-s.sendmail(fromaddr, toaddr, text) 
+s.sendmail(fromaddr, toaddr.split(','), text) 
 # terminating the session 
 s.quit() 

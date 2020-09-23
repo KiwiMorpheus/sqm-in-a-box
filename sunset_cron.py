@@ -209,7 +209,7 @@ params = (
     ('checksum', checksum),
 )
 
-res = requests.get('http://darkskynz.org/sqminabox/api.php', params=params, headers={'User-Agent': 'Foo bar'})
+res = requests.get('http://darkskynz.org/sqminabox/api.php', params=params, headers={'User-Agent': 'Unihedron SQM-LE and Raspberry Pi'})
 
 if res.status_code == '200':
     station_id = res.content
@@ -255,6 +255,8 @@ for job in my_cron:
 		exists_startup_cron = True
 	if "Send data" in str(job):
 		exists_send_data = True
+	if "git pull code updates":
+		git_pull = True
 
 if exists_query_gps == True:
     for job in my_cron.find_comment('Query GPS'):
@@ -296,6 +298,14 @@ if exists_startup_cron == False:
 	startup_cron.every_reboot()
 	my_cron.write()
 	logger.debug('Startup cron job created successfully')
+
+	if git_pull == False:
+		startup_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull', comment="git pull code updates")
+		job.hour.on(12)
+		job.minute.on(0)
+		job.enable(False)
+		my_cron.write()
+		logger.debug('git pull code updates cron job created successfully')
 
 if exists_sunrise_cron == True:
 	for job in my_cron.find_comment('Sunrise cron'):
