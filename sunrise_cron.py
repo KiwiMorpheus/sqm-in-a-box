@@ -71,6 +71,7 @@ try:
 	hasgpsstring = config.get('station', 'has_gps')
 	has_gps = strtobool(hasgpsstring)
 	station_name = config.get('station', 'name')
+	apikey = config.get('station', 'apikey')
 	sqm = config["sqm"]
 	sqmdatafile = config.get('sqm', 'sqmdatafile')
 	mail = config["mail"]
