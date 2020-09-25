@@ -8,12 +8,15 @@ Setup Steps
 1. Install pip
     Linux with apt/apt-get: sudo apt-get install python-pip
 
-2. Run the following commands to install the required Python packages and the git client. 
+2. Run the following commands to install the required Python packages and the git client.
+    
     sudo apt-get install python-dev python-distutils-extra python-pip python-numpy git dnsutils
     
     sudo pip install pytx pytz datetime tzlocal skyfield python-crontab python-dateutil requests
 
-3. Download the SQM-in-a-Box scripts.
+3. Download the SQM-in-a-Box scripts from the git repository.
+    These will run under a standard user, say the default Raspberry Pi user pi, so can be installed in the home directory.
+    
     git clone https://github.com/KiwiMorpheus/sqm-in-a-box.git
 
 3. Copy the example_config.ini file to config.ini and update it with your station information

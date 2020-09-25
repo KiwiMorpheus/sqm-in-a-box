@@ -77,10 +77,10 @@ try:
 		usb_port = config.get('sqm', 'usb_port')
 
 	gps = config["gps"]
-	tzn = config.get('gps', 'tzn')
-	latitude = config.get('gps', 'lat')
-	longitude = config.get('gps', 'lon')
-	elevation = config.get('gps', 'elv')
+	tzn = config.get('gps', 'timezone')
+	latitude = config.get('gps', 'latitude')
+	longitude = config.get('gps', 'longitude')
+	elevation = config.get('gps', 'elevation')
 	last_gps_read_string = config.get('gps', 'last_gps_read')
 
 	station = config["station"]
