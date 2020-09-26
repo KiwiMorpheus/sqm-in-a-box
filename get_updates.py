@@ -73,19 +73,18 @@ logger.debug('current_user: ' + current_user)
 
 try:
     gps = config["gps"]
-    tzn = config.get('gps', 'tzn')
-    lat = config.getfloat('gps', 'lat')
-    lon = config.getfloat('gps', 'lon')
-    elv = config.getfloat('gps', 'elv')
-    desc = config.get('gps', 'desc')
+    timezone = config.get('gps', 'timezone')
+    latitude = config.getfloat('gps', 'latitude')
+    longitude = config.getfloat('gps', 'longitude')
+    elevation = config.getfloat('gps', 'elevation')
+    location_description = config.get('gps', 'location_description')
 
     station = config["station"]
     apikey = config.get('station', 'apikey')
     station_id = config.get('station', 'station_id')
-    mobilestring = config.get('station', 'is_mobile')
-    is_mobile = strtobool(mobilestring)
-    hasgpsstring = config.get('station', 'has_gps')
-    has_gps = strtobool(hasgpsstring)
+    has_internet = strtobool(config.get('station', 'has_internet'))
+    is_mobile = strtobool(config.get('station', 'is_mobile'))
+    has_gps = strtobool(config.get('station', 'has_gps'))
     station_name = config.get('station', 'name')
     configured = config.get('station', 'configured')
     is_configured = strtobool(configured)
@@ -118,7 +117,7 @@ if apikey != "":
     from datetime import datetime
     import pytz, tzlocal
 
-    tz = pytz.timezone(tzn)
+    tz = pytz.timezone(timezone)
     now = datetime.now(tz)
 
     import requests
@@ -126,39 +125,45 @@ if apikey != "":
     url = 'https://darkskynz.org/sqminabox/' + apikey + "/update.txt"
     logger.debug('Request URL: ' + url)
     myfile = requests.get(url, headers={'User-Agent': 'Unihedron SQM-LE and Raspberry Pi'})
-    open('/tmp/update.txt', 'wb').write(myfile.content)
+    
+    if myfile.status_code == 200:
+        open(updatefile, 'wb').write(myfile.content)
+        logger.debug('Update file')
 
-    logger.debug('Update file')
+        update = configparser.ConfigParser()
+        update.read(updatefile)
 
-    update = configparser.ConfigParser()
-    update.read(updatefile)
+        updatelog = open('/tmp/update.log', "w+")
+        something_changed = False
 
-    updatelog = open('/tmp/update.log', "w+")
-    something_changed = False
+        for each_section in update.sections():
+            logger.debug('Section: ' + each_section)
+            for (each_key, each_val) in update.items(each_section):
+                try:
+                    old_value = config.get(each_section, each_key)
+                except:
+                    old_value = ''
+                logger.debug('Key: ' + each_key + ' : ' + old_value + ' : ' + each_val)
+                if old_value != each_val:
+                    something_changed = True
+                    config.set(each_section, each_key, str(each_val))
+                    str_updated_value = str(now.isoformat()) + ' : ' + str(each_section) + ' : ' + str(each_key) + ' : ' + str(old_value) + ' ; ' + str(each_val) + '\n'
+                    updatelog.write(str_updated_value)
 
-    for each_section in update.sections():
-        logger.debug('Section: ' + each_section)
-        for (each_key, each_val) in update.items(each_section):
-            old_value = config.get(each_section, each_key)
-            logger.debug('Key: ' + each_key + ' : ' + old_value + ' : ' + each_val)
-            if old_value != each_val:
-                something_changed = True
-                config.set(each_section, each_key, str(each_val))
-                str_updated_value = str(now.isoformat()) + ' : ' + str(each_section) + ' : ' + str(each_key) + ' : ' + str(old_value) + ' ; ' + str(each_val) + '\n'
-                updatelog.write(str_updated_value)
+        if something_changed == False:
+            updatelog.write('Nothing changed!')
 
-    if something_changed == False:
-        updatelog.write('Nothing changed!')
+        # Writing our configuration file to 'config.ini'
+        with open(configfile, 'wb') as thisconfigfile:
+            config.write(thisconfigfile)
+            thisconfigfile.close()
+            shutil.copy(configfile, basepath + 'config.ini')
 
-    # Writing our configuration file to 'config.ini'
-    with open(configfile, 'wb') as thisconfigfile:
-        config.write(thisconfigfile)
-        thisconfigfile.close()
-        shutil.copy(configfile, basepath + 'config.ini')
+        try:
+            git_pull = config.get('station', 'update_code')
+        except:
+            git_pull = 'False'
 
-
-    git_pull = config.get('station', 'update_code')
-    if git_pull == 'False':
         import getpass
         current_user = getpass.getuser()
 
@@ -175,22 +180,39 @@ if apikey != "":
         if exists_update_git == True:
             for job in my_cron.find_comment('git pull code updates'):
                 if git_pull == 'urgent':
+                    job.clear()
                     job.minute.every(15)
-                    job.enable(True)
+                    job.enable(has_internet)
                 elif git_pull == 'scheduled':
+                    job.clear()
                     job.hour.on(12)
                     job.minute.on(0)
-                    job.enable(True)
+                    job.enable(has_internet)
                 else:
                     job.enable(False)
-                logger.debug('job: ' +str(job))
-                logger.debug('Query GPS cron job modified successfully')
+            my_cron.write()
+            logger.debug('job: ' +str(job))
+            logger.debug('git pull cron job modified successfully')
         elif exists_update_git == False:
             update_git_cron = my_cron.new(command='cd /home/' + current_user + '/sqm-in-a-box/ && git pull && https://darkskynz.org/sqminabox/api.php?action=update_processed&apikey=' + apikey, comment="git pull code updates")
             job.hour.on(12)
             job.minute.on(0)
-            job.enable(False)
+            job.enable(has_internet)
             my_cron.write()
             logger.debug('git pull code updates cron job created successfully')
 
-    updatelog.close()
+        import requests
+
+        params = (
+            ('action', 'update_processed'),
+            ('apikey', apikey),
+        )
+
+        response = requests.get('https://darkskynz.org/sqminabox/api.php', params=params, headers={'User-Agent': 'Unihedron SQM/LE and Raspberry Pi'})
+
+        logger.debug('response.status_code: ' + str(response.status_code))
+        logger.debug('response.content: ' + str(response.content))
+
+        #if response.status_code == 200:
+
+        updatelog.close()
