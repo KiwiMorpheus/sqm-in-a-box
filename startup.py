@@ -279,10 +279,6 @@ else:
 	connection = 'undetected'
 
 
-
-
-
-
 if configured == False:
 	import datetime
 	from datetime import datetime, timedelta
@@ -470,6 +466,7 @@ if configured == False:
 	config.set('station', 'apikey', apikey)
 	
 	emailContent += 'update Station info to config.ini\r\n'
+	
 	from crontab import CronTab
 	from datetime import datetime, timedelta
 
@@ -507,15 +504,14 @@ if configured == False:
 
 	if exists_query_gps == True:
 		for job in my_cron.find_comment('Query GPS'):
-			if has_gps == True:
-				if is_mobile == True:
-					job.minute.every(5) # every 5th minute
-				else:
-					job.hour.on(sunset_localtime.hour)
-					job.minute.on(sunset_localtime.minute)
-				job.enable(True)
+			job.clear()
+			if is_mobile == True:
+				job.minute.every(mobile_frequency) # every 5th minute
 			else:
-				job.enable(False)
+				job.hour.on(sunset_localtime.hour)
+				job.minute.on(sunset_localtime.minute)
+
+			job.enable(has_gps)
 			logger.debug('job: ' +str(job))
 			logger.debug('Query GPS cron job modified successfully')
 	elif exists_query_gps == False:
@@ -523,12 +519,15 @@ if configured == False:
 		get_gps.minute.every(1)
 		get_gps.enable(False)
 		logger.debug('Query GPS job created successfully')
-
+	
+	my_cron.write()
+	
 	if exists_query_sqm == True:
 		for job in my_cron.find_comment('Query SQM'):
+			job.clear()
 			if has_gps == True:
 				if is_mobile == True:
-					job.minute.every(5) # every 5th minute
+					job.minute.every(mobile_frequency) # every 5th minute
 				else:
 					job.minute.every(1) # every minute
 			job.enable(True)
@@ -540,14 +539,18 @@ if configured == False:
 		get_sqm.enable(True)
 		logger.debug('Query SQM job created successfully')
 
+	my_cron.write()
+
 	if exists_startup_cron == False:
 		startup_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/startup.py', comment="Startup cron")
 		startup_cron.every_reboot()
-		my_cron.write()
 		logger.debug('Startup cron job created successfully')
+
+	my_cron.write()
 
 	if exists_get_updates == True:
 		for job in my_cron.find_comment('Get updates'):
+			job.clear()
 			job.minute.on(0)
 			job.enable(has_internet)
 			logger.debug('job: ' + str(job))
@@ -556,11 +559,13 @@ if configured == False:
 		get_updates = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_updates.py', comment="Get updates")
 		get_updates.minute.on(0)
 		get_updates.enable(has_internet)
-		my_cron.write()
 		logger.debug('Get update cron job created successfully')
+
+	my_cron.write()
 
 	if exists_git_pull == True:
 		for job in my_cron.find_comment('git pull code updates'):
+			job.clear()
 			job.hour.on(12)
 			job.minute.on(0)
 			job.enable(has_internet)
@@ -571,8 +576,9 @@ if configured == False:
 		update_git_cron.hour.on(12)
 		update_git_cron.minute.on(0)
 		update_git_cron.enable(False)
-		my_cron.write()
 		logger.debug('git pull code updates cron job created successfully')
+
+	my_cron.write()
 
 	if exists_sunrise_cron == True:
 		for job in my_cron.find_comment('Sunrise cron'):
@@ -590,6 +596,8 @@ if configured == False:
 		sunrise_cron.enable(True)
 		logger.debug('Sunrise cron job created successfully')
 
+	my_cron.write()
+
 	if exists_sunset_cron == True:
 		for job in my_cron.find_comment('Sunset cron'):
 			job.hour.on(sunset_localtime.hour)
@@ -605,9 +613,12 @@ if configured == False:
 		sunset_cron.hour.on(nowplus5min.hour)
 		sunset_cron.enable(True)
 		logger.debug('Sunset cron job created successfully')
+	
+	my_cron.write()
 
 	if exists_send_data == True:
 		for job in my_cron.find_comment('Send data'):
+			job.clear()
 			job.enable(has_internet)
 			if frequency == 'daily':
 				job.minute.on(0)
@@ -620,8 +631,8 @@ if configured == False:
 				job.minute.on(0)
 				job.hour.on(9)
 				job.day.on(1)
-			else:
-				job.enable(False)
+
+			job.enable(has_internet)
 		logger.debug('Send data cron job modified successfully')
 	elif exists_send_data == False:
 		send_data_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/send_data.py', comment="Send data")
@@ -637,17 +648,21 @@ if configured == False:
 			send_data_cron.minute.on(0)
 			send_data_cron.hour.on(9)
 			send_data_cron.day.on(1)
-		else:
-			send_data_cron.enable(False)
-		logger.debug('Send data cron job created successfully')
 
+		send_data_cron.enable(has_internet)
+		logger.debug('Send data cron job created successfully')
+	
 	my_cron.write()
 
 	emailContent += 'Create cron entries if they dont exist\r\n'
 
-	#config.set('station', 'configured', "True")
-	write_file()
-	shutil.copy(configfile, basepath + 'config.ini')
+	config.set('station', 'configured', str(True))
+
+	# Writing our configuration file to 'config.ini'
+	with open(configfile, 'wb') as thisconfigfile:
+		config.write(thisconfigfile)
+		thisconfigfile.close()
+		shutil.copy(configfile, basepath + 'config.ini')
 
 	emailContent += 'Set configured = true and Write updated info to config.ini\r\n'
 
@@ -666,17 +681,19 @@ if configured == False:
 	emailBody = MIMEText(emailContent, 'plain')
 	
 	"""
- 	emailatitudetachment = 'hostname, hostmac, hostapi, sqmtype, sqmserial, sqmfirmware\r\n'
-	emailatitudetachment += host_name + ', '
-	emailatitudetachment += pi_mac_address + ', '
-	emailatitudetachment += apikey + ', '
-	emailatitudetachment += sqm_device_type + ', '
-    emailatitudetachment += sqm_instrument_id + ', '
-	emailatitudetachment += sqm_serial_number + ', '
-	emailatitudetachment += sqm_hardware_identity + ', '
-	emailatitudetachment += sqm_firmware_version
+ 	emailattachment = 'hostname, hostmac, hostapi, sqmtype, sqmserial, sqmfirmware\r\n'
+	emailattachment += host_name + ', '
+	emailattachment += pi_mac_address + ', '
+	emailattachment += apikey + ', '
+	emailattachment += sqm_device_type + ', '
+    emailattachment += sqm_instrument_id + ', '
+	emailattachment += sqm_serial_number + ', '
+	emailattachment += sqm_hardware_identity + ', '
+	emailattachment += sqm_firmware_version
 
-	emailContent += emailatitudetachment
+	emailContent += emailattachment
 	"""
 	#Sends an email to the "sendTo" address with the specified "emailSubject" as the subject and "emailContent" as the email content.
 	sender.sendmail(sendTo, emailSubject, emailContent)
+
+
