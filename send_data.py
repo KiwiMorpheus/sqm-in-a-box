@@ -86,6 +86,15 @@ from dateutil.relativedelta import *
 from zipfile import ZipFile
 import glob
 
+today = datetime.today()
+logger.info("These files are older than 7 days:")
+for i in glob.glob('/tmp/*.zip'):
+    t = os.stat(i)[8]
+    filetime = datetime.datetime.fromtimestamp(t) - today    
+    if filetime.days <= -7:
+        logger.info( i, filetime.days)
+        os.remove(i)
+
 str_today = datetime.today().strftime('%Y-%m-%d')
 sending_filename = str_today + '-' + instrument_id + '.zip'
 zipObj = ZipFile('/tmp/' + sending_filename, 'w')

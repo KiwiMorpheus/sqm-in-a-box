@@ -60,22 +60,38 @@ current_user = getpass.getuser()
 
 try:
 	gps = config["gps"]
-	tzn = config.get('gps', 'tzn')
-	lat = config.getfloat('gps', 'lat')
-	lon = config.getfloat('gps', 'lon')
-	elv = config.getfloat('gps', 'elv')
-	desc = config.get('gps', 'desc')
+	timezone = config.get('gps', 'timezone')
+	latitude = config.getfloat('gps', 'latitude')
+	longitude = config.getfloat('gps', 'longitude')
+	elevation = config.getfloat('gps', 'elevation')
+	location_description = config.get('gps', 'location_description')
+
 	station = config["station"]
-	mobilestring = config.get('station', 'is_mobile')
-	is_mobile = strtobool(mobilestring)
-	hasgpsstring = config.get('station', 'has_gps')
-	has_gps = strtobool(hasgpsstring)
-	station_name = config.get('station', 'name')
 	apikey = config.get('station', 'apikey')
+	station_id = config.get('station', 'station_id')
+	has_internet = strtobool(config.get('station', 'has_internet'))
+	is_mobile = strtobool(config.get('station', 'is_mobile'))
+	mobile_frequency = config.get('station', 'mobile_frequency')
+	has_gps = strtobool(config.get('station', 'has_gps'))
+	station_name = config.get('station', 'name')
+	configured = strtobool(config.get('station', 'configured'))
+
 	sqm = config["sqm"]
-	sqmdatafile = config.get('sqm', 'sqmdatafile')
+	sqm_type = config.get('sqm', 'type')
+	connection = config.get('sqm', 'connection')
+	sqm_address = config.get('sqm', 'sqm_address')
+	tcp_port = config.get('sqm', 'tcp_port')
+	usb_port = config.get('sqm', 'usb_port')
+	instrument_id = config.get('sqm', 'instrument_id')
+
 	mail = config["mail"]
+	smtp_server = config.get('mail', 'smtp_server')
+	smtp_port = int(config.get('mail', 'smtp_port'))
+	mailbox_username = config.get('mail', 'mailbox_username')
+	mailbox_password = config.get('mail', 'mailbox_password')
 	frequency = config.get('mail', 'frequency')
+
+	logger.debug('Read values from config.ini')
 except KeyError as e:
 	logger.warn("Error reading the configuration section {}".format(e))
 
@@ -84,7 +100,7 @@ from datetime import datetime, timedelta
 import pytz
 import tzlocal
 
-tz = pytz.timezone(tzn)
+tz = pytz.timezone(timezone)
 
 now = datetime.now(tz)
 logger.debug('now: ' + str(now))
@@ -134,7 +150,7 @@ planets = load('de421.bsp')
 
 from skyfield import almanac
 
-loc = api.Topos(lat, lon, elevation_m=elv)
+loc = api.Topos(latitude, longitude, elevation_m=elevation)
 
 t0 = ts.utc(datetime.now(tz))
 t1 = ts.utc(tz.normalize(datetime.now(tz) + timedelta(1)))

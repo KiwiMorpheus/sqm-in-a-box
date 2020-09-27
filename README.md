@@ -9,13 +9,18 @@ Setup Steps
     Linux with apt/apt-get: sudo apt-get install python-pip
 
 2. Run the following commands to install the required Python packages and the git client.
-    
-    sudo apt-get install python-dev python-distutils-extra python-pip python-numpy git dnsutils
-    
-    sudo pip install pytx pytz datetime tzlocal skyfield python-crontab python-dateutil requests
+
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo apt-get install python-dev python-distutils-extra python-pip python-numpy git dnsutils ssmtp mailutils
+    sudo pip install pytx pytz datetime tzlocal 
+    sudo pip install skyfield 
+    sudo pip install python-crontab 
+    sudo pip install python-dateutil 
+    sudo pip install requests
 
 3. Download the SQM-in-a-Box scripts from the git repository.
-    These will run under a standard user, say the default Raspberry Pi user pi, so can be installed in the home directory.
+    These will run under a standard user, say the default Raspberry Pi user pi, so can be installed from the home directory.
     
     git clone https://github.com/KiwiMorpheus/sqm-in-a-box.git
 
@@ -47,4 +52,3 @@ Setup Steps
         Sunset crons - Switches on the Query SQM cron job and creates the datafile for the nights readings. If is a mobile station with GPS it will fire up the Read GPS cron job as well. This will adjust the Send Data freequency depending on the mail frequency set.
         Sunrise crons - These will switch off the Query SQM cron job. 
         Send Data - Will send the data at 9am either daily or for weekly on the Monday or monthly on the first day of the month.
-

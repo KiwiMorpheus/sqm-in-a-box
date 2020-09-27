@@ -57,24 +57,39 @@ logger = logging.getLogger('set_cron')
 
 try:
 	gps = config["gps"]
-	tzn = config.get('gps', 'tzn')
-	lat = config.getfloat('gps', 'lat')
-	lon = config.getfloat('gps', 'lon')
-	elv = config.getfloat('gps', 'elv')
-	desc = config.get('gps', 'desc')
+	timezone = config.get('gps', 'timezone')
+	latitude = config.getfloat('gps', 'latitude')
+	longitude = config.getfloat('gps', 'longitude')
+	elevation = config.getfloat('gps', 'elevation')
+	location_description = config.get('gps', 'location_description')
+
 	station = config["station"]
+	apikey = config.get('station', 'apikey')
+	station_id = config.get('station', 'station_id')
 	has_internet = strtobool(config.get('station', 'has_internet'))
 	is_mobile = strtobool(config.get('station', 'is_mobile'))
+	mobile_frequency = config.get('station', 'mobile_frequency')
 	has_gps = strtobool(config.get('station', 'has_gps'))
 	station_name = config.get('station', 'name')
-	apikey = config.get('station', 'apikey')
-	station = config["sqm"]
+	configured = strtobool(config.get('station', 'configured'))
+
+	sqm = config["sqm"]
+	sqm_serial = config.get('sqm', 'serial')
+	sqm_type = config.get('sqm', 'type')
+	connection = config.get('sqm', 'connection')
+	sqm_address = config.get('sqm', 'sqm_address')
+	tcp_port = config.get('sqm', 'tcp_port')
+	usb_port = config.get('sqm', 'usb_port')
 	instrument_id = config.get('sqm', 'instrument_id')
-	device_serial = config.get('sqm', 'serial')
-	device_type = config.get('sqm', 'type')
-	sqmdatafile = config.get('sqm', 'sqmdatafile')
+
 	mail = config["mail"]
+	smtp_server = config.get('mail', 'smtp_server')
+	smtp_port = int(config.get('mail', 'smtp_port'))
+	mailbox_username = config.get('mail', 'mailbox_username')
+	mailbox_password = config.get('mail', 'mailbox_password')
 	frequency = config.get('mail', 'frequency')
+
+	logger.debug('Read values from config.ini')
 except KeyError as e:
     logger.warn("Error reading the configuration section {}".format(e))
 
@@ -83,7 +98,7 @@ from datetime import datetime, timedelta
 import pytz
 import tzlocal
 
-tz = pytz.timezone(tzn)
+tz = pytz.timezone(timezone)
 
 now = datetime.now(tz)
 logger.debug('now: ' + str(now))
@@ -130,7 +145,7 @@ planets = load('de421.bsp')
 
 from skyfield import almanac
 
-loc = api.Topos(lat, lon, elevation_m=elv)
+loc = api.Topos(latitude, longitude, elevation_m=elevation)
 
 t0 = ts.utc(datetime.now(tz))
 t1 = ts.utc(tz.normalize(datetime.now(tz) + timedelta(1)))
@@ -186,7 +201,7 @@ sqmdatafile = timestr + '_' + instrument_id + '.dat'
 
 if not os.path.isfile(datapath + sqmdatafile):
     with open(datapath + sqmdatafile, 'w+') as datafile:
-        datafile.write('utc_now.isoformat; now.isoformat; temperature; counts; frequency; mpsas; moon_phase_deg; moon_elev_deg; moon_illum latitude; logitude; elevation')
+        datafile.write('utc_now.isoformat; now.isoformat; temperature; counts; frequency; mpsas; moon_phase_deg; moon_elev_deg; moon_illum latitude; logitude; elevation\n')
         datafile.close()
 
 config.set('sqm', 'sqmdatafile', sqmdatafile)
@@ -196,14 +211,14 @@ logger.debug('sqmdatafile: ' + sqmdatafile)
 
 import requests, zlib
 
-checksum = hex(zlib.crc32( device_serial + device_type + instrument_id + apikey))[2:]
+checksum = hex(zlib.crc32( sqm_serial + sqm_type + instrument_id + apikey))[2:]
 logger.debug('checksum: ' + checksum)
 
 params = (
     ('action', 'getstationid'),
-    ('device_serial', device_serial),
+    ('device_serial', sqm_serial),
     ('instrument_id', instrument_id),
-    ('device_type', device_type),
+    ('device_type', sqm_type),
     ('apikey', apikey),
     ('checksum', checksum),
 )
@@ -260,26 +275,26 @@ for job in my_cron:
 		exists_git_pull = True
 
 if exists_query_gps == True:
-    for job in my_cron.find_comment('Query GPS'):
-        if has_gps == True:
-            if is_mobile == True:
-                job.minute.every(5) # every 5th minute
-            else:
-                job.hour.on(sunset_localtime.hour)
-                job.minute.on(sunset_localtime.minute)
-            job.enable(True)
-        else:
-            job.enable(False)
-        logger.debug('job: ' +str(job))
-        logger.debug('Query GPS cron job modified successfully')
+	for job in my_cron.find_comment('Query GPS'):
+		job.clear()
+		if is_mobile == True:
+			job.minute.every(5) # every 5th minute
+		else:
+			job.hour.on(sunset_localtime.hour)
+			job.minute.on(sunset_localtime.minute)
+			job.enable(True)
+		job.enable(has_gps)
+	logger.debug('job: ' +str(job))
+	logger.debug('Query GPS cron job modified successfully')
 elif exists_query_gps == False:
-    get_gps = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_gps_coordinates.py', comment="Query GPS")
-    get_gps.minute.every(1)
-    get_gps.enable(False)
-    logger.debug('Query GPS job created successfully')
+	get_gps = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_gps_coordinates.py', comment="Query GPS")
+	get_gps.minute.every(1)
+	get_gps.enable(False)
+	logger.debug('Query GPS job created successfully')
 
 if exists_query_sqm == True:
 	for job in my_cron.find_comment('Query SQM'):
+		job.clear()
 		if has_gps == True:
 			if is_mobile == True:
 				job.minute.every(5) # every 5th minute
@@ -288,10 +303,12 @@ if exists_query_sqm == True:
 		job.enable(True)
 		logger.debug('job: ' + str(job))
 		logger.debug('Query SQM job modified successfully')
+	my_cron.write()
 elif exists_query_sqm == False:	
 	get_sqm = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_sqm_reading.py', comment="Query SQM")
 	get_sqm.minute.every(1)
 	get_sqm.enable(True)
+	my_cron.write()
 	logger.debug('Query SQM job created successfully')
 
 if exists_startup_cron == False:
@@ -324,6 +341,7 @@ if exists_sunrise_cron == True:
 		logger.debug('sunrise_localtime.minute: ' + str(sunrise_localtime.minute))
 		logger.debug('job: ' +str(job))
 		logger.debug('Sunrise cron job modified successfully')
+	my_cron.write()
 elif exists_sunrise_cron == False:
 	sunrise_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunrise_cron.py', comment="Sunrise cron")
 	sunrise_cron.minute.on(30)
@@ -340,6 +358,7 @@ if exists_sunset_cron == True:
 		logger.debug('sunset_localtime.minute: ' + str(sunset_localtime.minute))
 		logger.debug('job: ' +str(job))
 		logger.debug('Sunset cron job modified successfully')
+	my_cron.write()
 elif exists_sunset_cron == False:
 	sunset_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/sunset_cron.py', comment="Sunset cron")
 	sunset_cron.minute.on(nowplus5min.minute)
@@ -349,6 +368,7 @@ elif exists_sunset_cron == False:
 
 if exists_send_data == True:
 	for job in my_cron.find_comment('Send data'):
+		job.clear()
 		job.enable(True)
 		if frequency == 'daily':
 			job.minute.on(0)
@@ -363,6 +383,7 @@ if exists_send_data == True:
 			job.day.on(1)
 		else:
 			job.enable(False)
+	my_cron.write()
 	logger.debug('Send data cron job modified successfully')
 elif exists_send_data == False:
 	send_data_cron = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/send_data.py', comment="Send data")
