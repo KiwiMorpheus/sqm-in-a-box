@@ -231,3 +231,5 @@ elif exists_get_updates == False:
     get_updates.minute.on(0)
     get_updates.enable(has_internet)
     logger.debug('Get update cron job created successfully')
+
+my_cron.write()
