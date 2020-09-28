@@ -119,7 +119,7 @@ from crontab import CronTab
 my_cron = CronTab(user=current_user)
 
 #    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
-exists_update_git = False
+exists_update_git = exists_get_updates = False
 
 for job in my_cron:
     if "git pull code updates" in str(job):
