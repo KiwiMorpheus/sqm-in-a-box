@@ -112,6 +112,21 @@ for each_section in config.sections():
     for (each_key, each_val) in config.items(each_section):
         logger.debug(each_key + ' : ' + each_val)
 
+import getpass
+current_user = getpass.getuser()
+
+from crontab import CronTab
+my_cron = CronTab(user=current_user)
+
+#    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
+exists_update_git = False
+
+for job in my_cron:
+    if "git pull code updates" in str(job):
+        exists_update_git = True
+    if "Get updates" in str(job):
+        exists_get_updates = True
+
 if apikey != "":
     import datetime
     from datetime import datetime
@@ -164,19 +179,6 @@ if apikey != "":
         except:
             git_pull = 'False'
 
-        import getpass
-        current_user = getpass.getuser()
-
-        from crontab import CronTab
-        my_cron = CronTab(user=current_user)
-
-        #    my_cron.env['MAILTO'] = 'justin@darkskynz.org'
-        exists_update_git = False
-
-        for job in my_cron:
-            if "git pull code updates" in str(job):
-                exists_update_git = True
-        
         if exists_update_git == True:
             for job in my_cron.find_comment('git pull code updates'):
                 if git_pull == 'urgent':
@@ -216,3 +218,16 @@ if apikey != "":
         #if response.status_code == 200:
 
         updatelog.close()
+
+if exists_get_updates == True:
+    for job in my_cron.find_comment('Get updates'):
+        job.clear()
+        job.minute.on(0)
+        job.enable(has_internet)
+        logger.debug('job: ' + str(job))
+        logger.debug('Get updates job modified successfully')
+elif exists_get_updates == False:
+    get_updates = my_cron.new(command='python /home/' + current_user + '/sqm-in-a-box/get_updates.py', comment="Get updates")
+    get_updates.minute.on(0)
+    get_updates.enable(has_internet)
+    logger.debug('Get update cron job created successfully')
