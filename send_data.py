@@ -92,7 +92,7 @@ for i in glob.glob('/tmp/*.zip'):
     t = os.stat(i)[8]
     filetime = datetime.fromtimestamp(t) - today    
     if filetime.days <= -7:
-        logger.info( i, filetime.days)
+        logger.info( str(i), str(filetime.days))
         os.remove(i)
 
 str_today = datetime.today().strftime('%Y-%m-%d')
