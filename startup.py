@@ -122,11 +122,42 @@ def write_file():
 logger.debug('os.path.exists(configfile): ' + str(os.path.exists(configfile)))
 
 if not os.path.exists(configfile):
-	config['gps'] = { 'timezone': 'Pacific/Auckland', 'elevation': '14', 'location_location_descriptionription': 'Auckland, New Zealand', 'longitude': '174.7', 'latitudeitude': '-36.8', 'last_gps_read': ''}
-	config['debug'] = {'debugmode': 'False'}
-	config['station'] = {'configured': 'False', 'is_mobile': 'False', 'has_gps': 'False', 'name': host_name, 'station_id': '', 'update_code': 'False', 'has_internet': 'True', 'mobile_frequency': '5', 'station_type': 'connected'}
-	config['sqm'] = {'connection': 'eth', 'sqm_address': '', 'tcp_port': '10001', 'usb_port': 'dev/ttyUSB0', 'type': '', 'serial': '', 'instrument_id': '', 'sqmdatafile': ''}
-	config['mail'] = {'recipient': 'john@example.com', 'frequency': 'weekly', 'smtp_server': 'mail.domain.com', 'smtp_port': '587', 'mailbox_username': 'CHANGE_ME', 'mailbox_password': 'CHANGE_ME'}
+	config.add_section('gps')
+	config.set('gps','timezone', 'Pacific/Auckland')
+	config.set('gps','elevation', '14')
+	config.set('gps','location_description', 'Auckland, New Zealand')
+	config.set('gps','longitude', '174.7')
+	config.set('gps','latitude', '-36.8')
+	config.set('gps','last_gps_read', '')
+	config.add_section('debug')
+	config.set('debug','debugmode', 'info')
+	config.add_section('station')
+	config.set('station','configured', 'False')
+	config.set('station','is_mobile', 'False')
+	config.set('station','mobile_frequency', '5')
+	config.set('station','has_gps', 'False')
+	config.set('station','has_internet', 'True')
+	config.set('station','station_type', 'connected')
+	config.set('station','name', host_name)
+	config.set('station','station_id', '')
+	config.set('station','update_code', 'False')
+	config.add_section('sqm')
+	config.set('sqm','connection', 'eth')
+	config.set('sqm','sqm_address', '')
+	config.set('sqm','tcp_port', '10001')
+	config.set('sqm','usb_port', 'dev/ttyUSB0')
+	config.set('sqm','has_internet', 'True')
+	config.set('sqm','serial', '')
+	config.set('sqm','instrument_id', '')
+	config.set('sqm','sqmdatafile', '')
+	config.add_section('mail')
+	config.set('mail','recipient', 'CHANGE ME')
+	config.set('mail','frequency', 'False')
+	config.set('mail','smtp_server', 'CHANGE ME')
+	config.set('mail','smtp_port', '587')
+	config.set('mail','mailbox_username', 'CHANGE ME')
+	config.set('mail','mailbox_password', 'CHANGE ME')
+	
 	write_file()
 	shutil.copy(configfile, basepath + 'config.ini')
 	emailContent += 'Create config.ini\r\n'

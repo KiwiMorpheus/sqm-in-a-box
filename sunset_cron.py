@@ -203,6 +203,8 @@ if not os.path.isfile(datapath + sqmdatafile):
     with open(datapath + sqmdatafile, 'w+') as datafile:
         datafile.write('utc_now.isoformat; now.isoformat; temperature; counts; frequency; mpsas; moon_phase_deg; moon_elev_deg; moon_illum latitude; logitude; elevation\n')
         datafile.close()
+	os.symlink(datapath + sqmdatafile, datapath + 'tmpsymlink')
+	os.rename(datapath + 'tmpsymlink', datapath + 'latest.dat')
 
 config.set('sqm', 'sqmdatafile', sqmdatafile)
 

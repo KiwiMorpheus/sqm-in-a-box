@@ -87,10 +87,10 @@ from zipfile import ZipFile
 import glob
 
 today = datetime.today()
-logger.info("These files are older than 7 days:")
 for i in glob.glob('/tmp/*.zip'):
     t = os.stat(i)[8]
-    filetime = datetime.fromtimestamp(t) - today    
+    filetime = datetime.fromtimestamp(t) - today
+    logger.debug("Clear old email zip files older than 7 days:")
     if filetime.days <= -7:
         logger.info( str(i), str(filetime.days))
         os.remove(i)
@@ -98,9 +98,9 @@ for i in glob.glob('/tmp/*.zip'):
 str_today = datetime.today().strftime('%Y-%m-%d')
 sending_filename = str_today + '-' + instrument_id + '.zip'
 zipObj = ZipFile('/tmp/' + sending_filename, 'w')
- 
+
 if frequency.lower() == 'daily':
-    email_body_period = ['is yesterdays', '']
+    email_body_period = ['is lastnights', '']
     #get the last data file and zip it
     zipObj.write(datapath + sqmdatafile, sqmdatafile)
 elif frequency.lower() == 'weekly':
