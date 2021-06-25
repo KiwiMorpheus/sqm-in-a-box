@@ -100,7 +100,7 @@ sending_filename = str_today + '-' + instrument_id + '.zip'
 zipObj = ZipFile('/tmp/' + sending_filename, 'w')
 
 if frequency.lower() == 'daily':
-    email_body_period = ['is lastnights', '']
+    email_body_period = ['is last nights', '']
     #get the last data file and zip it
     zipObj.write(datapath + sqmdatafile, sqmdatafile)
 elif frequency.lower() == 'weekly':
